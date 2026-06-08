@@ -19,4 +19,12 @@ def get_parser(parser_type: str) -> BaseParser:
 
 
 def get_all_parsers() -> dict[str, BaseParser]:
-    return {name: cls() for name, cls in _REGISTRY.items()}
+    parsers = {}
+    for name, cls in _REGISTRY.items():
+        try:
+            parsers[name] = cls()
+        except EnvironmentError as e:
+            import warnings
+
+            warnings.warn(f"[{name}] 파서 비활성화: {e}")
+    return parsers
