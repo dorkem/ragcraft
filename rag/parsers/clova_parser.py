@@ -11,7 +11,9 @@ class ClovaOCRParser(BaseParser):
     _TIMEOUT = 30
 
     def __init__(self):
-        self.invoke_url = os.getenv("CLOVA_OCR_INVOKE_URL")
+        self.invoke_url = os.getenv("CLOVA_OCR_INVOKE_URL", "").replace(
+            "http://", "https://"
+        )
         self.secret = os.getenv("CLOVA_OCR_SECRET")
 
         if not self.invoke_url or not self.secret:
