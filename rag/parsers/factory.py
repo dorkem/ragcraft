@@ -1,12 +1,16 @@
+import warnings
+
 from .base import BaseParser
-from .clova_parser import ClovaOCRParser
+from .docling_parser import DoclingParser
+from .llama_parse_parser import LlamaParseParser
 from .pymupdf4llm_parser import PyMuPDF4LLMParser
 from .pymupdf_parser import PyMuPDFParser
 
 _REGISTRY: dict[str, type[BaseParser]] = {
     "pymupdf": PyMuPDFParser,
     "pymupdf4llm": PyMuPDF4LLMParser,
-    "clova": ClovaOCRParser,
+    "docling": DoclingParser,
+    "llama_parse": LlamaParseParser,
 }
 
 
@@ -24,7 +28,5 @@ def get_all_parsers() -> dict[str, BaseParser]:
         try:
             parsers[name] = cls()
         except EnvironmentError as e:
-            import warnings
-
             warnings.warn(f"[{name}] 파서 비활성화: {e}")
     return parsers
