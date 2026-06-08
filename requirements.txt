@@ -5,6 +5,8 @@ langchain-community
 boto3
 pymupdf
 pymupdf4llm
+docling
+llama-parse
 faiss-cpu
 konlpy
 python-dotenv
