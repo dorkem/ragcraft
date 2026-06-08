@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -31,6 +32,16 @@ def select_file(directory: str) -> Path:
         print(f"  1 ~ {len(files)} 사이의 번호를 입력하세요.")
 
 
+def save_result(result: str, file_path: Path, parser_type: str) -> Path:
+    today = datetime.now().strftime("%Y%m%d")
+    out_dir = Path("result") / "parsing" / today
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    out_file = out_dir / f"{file_path.stem}_{parser_type}.txt"
+    out_file.write_text(result, encoding="utf-8")
+    return out_file
+
+
 def run_pipeline(file_path: Path) -> str:
     logger.info("PDF 변환 시작: %s", file_path.name)
     pdf_path = to_pdf(str(file_path))
@@ -47,8 +58,12 @@ def main():
     file_path = select_file("./test_sample")
     result = run_pipeline(file_path)
 
+    out_file = save_result(result, file_path, PARSER_TYPE)
+    logger.info("결과 저장: %s", out_file)
+
     print("\n" + "-" * 40)
     print(result[:500])
+    print(f"\n결과 파일: {out_file}")
 
 
 if __name__ == "__main__":
