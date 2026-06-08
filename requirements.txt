@@ -4,6 +4,7 @@ langchain-text-splitters
 langchain-community
 boto3
 pymupdf
+pymupdf4llm
 faiss-cpu
 konlpy
 python-dotenv
