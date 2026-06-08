@@ -1,0 +1,9 @@
+langchain-naver
+langchain-core
+langchain-text-splitters
+langchain-community
+boto3
+pymupdf
+faiss-cpu
+konlpy
+python-dotenv
