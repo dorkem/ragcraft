@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from core.logger import get_logger, setup_logging
 from rag.converter import to_pdf
 from rag.parsers.factory import PARSER_TYPE, get_parser
+from rag.writer import ResultWriter
 
 load_dotenv()
 setup_logging()
@@ -47,8 +48,13 @@ def main():
     file_path = select_file("./test_sample")
     result = run_pipeline(file_path)
 
+    writer = ResultWriter()
+    out_file = writer.save(result, file_path, tag=PARSER_TYPE, stage="parsing")
+    logger.info("결과 저장: %s", out_file)
+
     print("\n" + "-" * 40)
     print(result[:500])
+    print(f"\n결과 파일: {out_file}")
 
 
 if __name__ == "__main__":
