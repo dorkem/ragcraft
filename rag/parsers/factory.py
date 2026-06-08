@@ -1,3 +1,5 @@
+import os
+
 from .base import BaseParser
 from .clova_parser import ClovaOCRParser
 from .pymupdf4llm_parser import PyMuPDF4LLMParser
@@ -9,8 +11,7 @@ _REGISTRY: dict[str, type[BaseParser]] = {
     "clova": ClovaOCRParser,
 }
 
-# 사용할 파서를 여기서 지정하세요: "pymupdf" | "pymupdf4llm" | "clova"
-PARSER_TYPE: str = "pymupdf"
+PARSER_TYPE: str = os.getenv("PARSER_TYPE", "pymupdf")
 
 
 def get_parser(parser_type: str = PARSER_TYPE) -> BaseParser:
