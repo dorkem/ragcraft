@@ -28,13 +28,19 @@ ragcraft 프로젝트의 상세 개발 규칙. 모든 섹션은 독립적으로 
   img/ 문서
     → step0_scan    : 새 파일 감지 (SHA256 중복 방지)
     → step1_parse   : PDF → 페이지별 텍스트 (pymupdf4llm)
-    → step2_chunk   : Parent-Child 청킹 (page=parent, 300자=child)
+    → step2_chunk   : 플랫 청킹 (800자, 80자 오버랩, 페이지 메타 보존)
     → step3_embed   : CLOVA Embedding v2 API 호출, 벡터 저장 JSON
-    → step4_store   : ChromaDB에 child 청크 + 벡터 적재
+    → step4_store   : ChromaDB에 청크 + 벡터 적재
 
-[검색·응답 파이프라인] — rag/ — 실시간, LangChain LCEL
+[검색·응답 파이프라인 — 단계별 실행]
   질문
-    → rag/retriever/dense.py   : ChildAwareParentRetriever (child 검색 → parent 반환)
+    → step5_retrieve : dense / sparse / hybrid 검색 → JSON
+    → step6_rerank   : CLOVA Reranker → JSON
+    → step7_generate : HyperCLOVA X 응답 생성 → JSON
+
+[검색·응답 파이프라인 — 통합 체인] — rag/ — 실시간, LangChain LCEL
+  질문
+    → rag/retriever/dense.py   : FlatRetriever (ChromaDB 직접 검색)
        또는 sparse.py          : BM25 키워드 검색
        또는 hybrid             : EnsembleRetriever (dense + sparse RRF 결합)
     → rag/retriever/clova_reranker.py : CLOVA Reranker (citedDocuments 기반)
@@ -42,19 +48,20 @@ ragcraft 프로젝트의 상세 개발 규칙. 모든 섹션은 독립적으로 
     → 최종 답변
 ```
 
-### 1.2 Parent-Child 구조
+### 1.2 플랫 청킹 구조
 
-- **child**: 300자 분할 청크, ChromaDB에 벡터로 저장 (검색 정밀도)
-- **parent**: 페이지 전체 텍스트, InMemoryStore에 로드 (LLM 컨텍스트 품질)
-- child의 `doc_id` → parent의 `chunk_id` (`{filename}__page_{N}`)
+- **청킹 단위**: 800자, 오버랩 80자. 페이지별로 분할하여 page_start/page_end 메타데이터 보존.
+- **단일 청크 타입**: parent/child 구분 없음. 모든 청크를 ChromaDB에 직접 저장.
+- **ID 포맷**: `{filename}__chunk_{N}`
 
 ```
-ChromaDB: child 청크 (벡터 검색용)
-  child.metadata["doc_id"] = "조경시방서.pdf__page_3"
-                                        ↓
-InMemoryStore: parent 청크 (LLM 전달용)
-  key = "조경시방서.pdf__page_3"
-  value = Document(page_content=페이지전체, metadata=...)
+ChromaDB: 플랫 청크 (벡터 검색 + LLM 전달 모두 사용)
+  chunk.metadata = {
+    "filename": "조경시방서.pdf",
+    "page_start": 3,
+    "page_end": 3,
+    "chunk_index": 12,
+  }
 ```
 
 ### 1.3 설계 원칙
@@ -80,7 +87,7 @@ InMemoryStore: parent 청크 (LLM 전달용)
 
 ### 2.2 파일 네이밍
 
-- 클래스: `PascalCase` (예: `HyperClovaLLM`, `ChildAwareParentRetriever`)
+- 클래스: `PascalCase` (예: `HyperClovaLLM`, `FlatRetriever`)
 - 함수/변수: `snake_case`
 - 상수: `UPPER_SNAKE_CASE`
 
@@ -156,9 +163,8 @@ CLOVA Studio `/testapp/v1/api-tools/reranker` 엔드포인트는 **Grounded Gene
 
 ### 5.1 저장 구조
 
-- **저장 대상**: child 청크만 (벡터 + 메타데이터)
-- **parent 청크**: ChromaDB에 저장하지 않음 → `result/{date}/chunk/*.json`에서 InMemoryStore로 로드
-- **ID 포맷**: `{filename}_{chunk_id}` (예: `조경시방서.pdf_조경시방서.pdf__child_0`)
+- **저장 대상**: 플랫 청크 전체 (벡터 + 메타데이터)
+- **ID 포맷**: `{filename}_{chunk_id}` (예: `조경시방서.pdf_조경시방서.pdf__chunk_0`)
 
 ### 5.2 메타데이터 스키마
 
@@ -169,10 +175,9 @@ CLOVA Studio `/testapp/v1/api-tools/reranker` 엔드포인트는 **Grounded Gene
     "file_hash": "sha256...",
     "file_size": 351877,
     "parser": "pymupdf4llm",
+    "chunk_index": 2,
     "page_start": 3,
     "page_end": 3,
-    "chunk_index": 2,
-    "doc_id": "조경시방서_대외용.hwp.pdf__page_3",  # parent 참조 키
 }
 ```
 

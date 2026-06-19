@@ -62,21 +62,27 @@ ragcraft/
 ├── img/                               ← 원본 문서 업로드 폴더 (git 제외)
 │   └── complete_info/
 │       └── processed.json             ← 처리 이력 (SHA256 기반, git 제외)
-├── pipeline/                          ← 적재 파이프라인 (1회성 배치)
+├── pipeline/                          ← 적재 + 검색 파이프라인
 │   ├── step0_scan.py                  ← 스캔 & 중복 필터
 │   ├── step1_parse.py                 ← 파싱 (pymupdf4llm / tensorlake)
-│   ├── step2_chunk.py                 ← Parent-Child 청킹
+│   ├── step2_chunk.py                 ← 플랫 청킹 (800자, 80자 오버랩)
 │   ├── step3_embed.py                 ← 임베딩 (CLOVA Embedding v2)
 │   ├── step4_store.py                 ← ChromaDB 저장
+│   ├── step5_retrieve.py              ← 검색 (dense/sparse/hybrid)
+│   ├── step6_rerank.py                ← CLOVA 리랭킹
+│   ├── step7_generate.py              ← HyperCLOVA X 응답 생성
 │   └── output/                        ← 스텝 간 중간 파일 (git 제외)
-│       └── step0_new_files.json
+│       ├── step0_new_files.json
+│       ├── step5_retrieve.json
+│       ├── step6_rerank.json
+│       └── step7_generate.json
 ├── rag/                               ← 검색·응답 파이프라인 (LangChain)
 │   ├── embeddings/
 │   │   └── clova_embedding.py         ← Embeddings 래퍼
 │   ├── llm/
 │   │   └── hyperclova.py              ← BaseChatModel 래퍼
 │   ├── retriever/
-│   │   ├── dense.py                   ← ChildAwareParentRetriever (similarity/MMR)
+│   │   ├── dense.py                   ← FlatRetriever (similarity/MMR)
 │   │   ├── sparse.py                  ← BM25 Retriever
 │   │   └── clova_reranker.py          ← BaseDocumentCompressor 래퍼
 │   └── chains/
@@ -99,14 +105,19 @@ pip install -r requirements.txt
 # 앱 실행
 streamlit run app.py
 
-# 파이프라인 수동 실행 (날짜 지정)
+# 적재 파이프라인 (날짜 지정)
 python -m pipeline.step0_scan
 python -m pipeline.step1_parse
 python -m pipeline.step2_chunk
 python -m pipeline.step3_embed
 python -m pipeline.step4_store
 
-# RAG 체인 단독 테스트
+# 검색·응답 단계별 실행 (step5~7 상수 수정 후 실행)
+python -m pipeline.step5_retrieve "인조잔디 포장 방법은?"
+python -m pipeline.step6_rerank
+python -m pipeline.step7_generate
+
+# RAG 체인 통합 테스트
 python -m rag.chains.rag_chain 인조잔디 포장 방법은?
 ```
 
