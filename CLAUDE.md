@@ -71,11 +71,8 @@ ragcraft/
 │   ├── step5_retrieve.py              ← 검색 (dense/sparse/hybrid)
 │   ├── step6_rerank.py                ← CLOVA 리랭킹
 │   ├── step7_generate.py              ← HyperCLOVA X 응답 생성
-│   └── output/                        ← 스텝 간 중간 파일 (git 제외)
-│       ├── step0_new_files.json
-│       ├── step5_retrieve.json
-│       ├── step6_rerank.json
-│       └── step7_generate.json
+│   └── output/                        ← step0 중간 파일 (git 제외)
+│       └── step0_new_files.json
 ├── rag/                               ← 검색·응답 파이프라인 (LangChain)
 │   ├── embeddings/
 │   │   └── clova_embedding.py         ← Embeddings 래퍼
@@ -91,7 +88,10 @@ ragcraft/
     └── yyyy/mm/dd/
         ├── parse/{파일명}.json
         ├── chunk/{파일명}.json
-        └── embed/{파일명}.json
+        ├── embed/{파일명}.json
+        ├── step5_retrieve.json        ← 검색 결과
+        ├── step6_rerank.json          ← 리랭킹 결과
+        └── step7_generate.json        ← 최종 응답
 ```
 
 ---

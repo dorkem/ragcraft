@@ -1,7 +1,7 @@
 """
 STEP 5: 검색 (Retrieve)
 입력: ChromaDB + result/{date}/chunk/*.json (sparse/hybrid 전용)
-출력: pipeline/output/step5_retrieve.json
+출력: result/{date}/step5_retrieve.json
 
 실행: python -m pipeline.step5_retrieve "질문"
 """
@@ -27,7 +27,6 @@ SPARSE_WEIGHT  = 0.3          # hybrid sparse 가중치
 CHUNK_DATE     = None         # None = 오늘 날짜 / 예: "2026/06/19"
 # ────────────────────────────────────────────────────────────
 
-OUTPUT_DIR = Path("pipeline/output")
 
 
 def main() -> None:
@@ -92,7 +91,8 @@ def main() -> None:
         print(d.page_content)
         print(f"{'-' * W}")
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    out_dir = Path(f"result/{date}")
+    out_dir.mkdir(parents=True, exist_ok=True)
     output = {
         "query": query,
         "retriever_type": RETRIEVER_TYPE,
@@ -101,7 +101,7 @@ def main() -> None:
         "docs": [{"content": d.page_content, "metadata": d.metadata} for d in docs],
         "timestamp": datetime.now().isoformat(),
     }
-    out_path = OUTPUT_DIR / "step5_retrieve.json"
+    out_path = out_dir / "step5_retrieve.json"
     out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\n→ 출력: {out_path}")
 
