@@ -1,3 +1,4 @@
+import copy
 from typing import List
 
 from langchain.storage import InMemoryStore
@@ -62,7 +63,9 @@ class ChildAwareParentRetriever(BaseRetriever):
                 continue
             results = self.docstore.mget([parent_id])
             if results and results[0] is not None:
-                parent = results[0]
+                parent = copy.deepcopy(results[0])
                 parent.metadata["matched_text"] = child.page_content
+                parent.metadata["page_start"] = child.metadata.get("page_start")
+                parent.metadata["page_end"] = child.metadata.get("page_start")
                 seen[parent_id] = parent
         return list(seen.values())
