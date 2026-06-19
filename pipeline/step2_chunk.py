@@ -1,11 +1,10 @@
 """
-STEP 2: 청킹 (Small-to-Big)
-입력: result/yyyy/mm/dd/parse/{파일명}.json  (페이지별 구조)
+STEP 2: 청킹 (Flat Chunking)
+입력: result/yyyy/mm/dd/parse/{파일명}.json
 출력: result/yyyy/mm/dd/chunk/{파일명}.json
 
 구조:
-  child_chunk: 300자 (임베딩 & 검색용, page_start/page_end로 정확한 페이지 안내)
-  parent_chunk: child 5개 묶음 (LLM 컨텍스트용, child의 doc_id로 참조)
+  페이지별로 800자 청크 (오버랩 80자). page_start/page_end 메타데이터 보존.
 
 날짜 직접 지정: python -m pipeline.step2_chunk 2025/06/18
 """
@@ -18,26 +17,25 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 TODAY = datetime.now().strftime("%Y/%m/%d")
 
-CHILD_CHUNK_SIZE = 300
-CHILD_CHUNK_OVERLAP = 30
-CHILDREN_PER_PARENT = 5
-MIN_CHILD_LEN = 80
+CHUNK_SIZE    = 800
+CHUNK_OVERLAP = 80
+MIN_CHUNK_LEN = 100  # 이보다 짧은 잔여 청크는 버림
 
-child_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=CHILD_CHUNK_SIZE,
-    chunk_overlap=CHILD_CHUNK_OVERLAP,
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=CHUNK_SIZE,
+    chunk_overlap=CHUNK_OVERLAP,
     separators=["\n\n", "\n", ". ", " ", ""],
 )
 
 
-def main():
+def main() -> None:
     date = sys.argv[1] if len(sys.argv) >= 2 else TODAY
     src_dir = Path(f"result/{date}/parse")
     out_dir = Path(f"result/{date}/chunk")
 
     if not src_dir.exists():
         print(f"[ERROR] 파싱 결과 없음: {src_dir}")
-        print("  step1_parse.py 를 먼저 실행하거나 날짜를 확인하세요")
+        print("  step1_parse.py를 먼저 실행하거나 날짜를 확인하세요")
         sys.exit(1)
 
     parse_files = sorted(src_dir.glob("*.json"))
@@ -46,8 +44,8 @@ def main():
         sys.exit(0)
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    print(f"\n[STEP 2] Small-to-Big 청킹 시작 - {len(parse_files)}개 파일")
-    print(f"  child: {CHILD_CHUNK_SIZE}자 / parent: child {CHILDREN_PER_PARENT}개 묶음")
+    print(f"\n[STEP 2] 플랫 청킹 시작 - {len(parse_files)}개 파일")
+    print(f"  chunk_size={CHUNK_SIZE} / overlap={CHUNK_OVERLAP}")
     print(f"  출력: {out_dir}\n")
 
     for parse_file in parse_files:
@@ -65,63 +63,33 @@ def main():
         }
         filename = parsed["filename"]
 
-        # 페이지별로 child 분할 → page 메타 보존
-        all_children: list[dict] = []
+        chunks = []
+        chunk_idx = 0
+
         for page in pages:
             page_num = page["page_number"]
             page_text = page["content"].strip()
             if not page_text:
                 continue
-            for text in child_splitter.split_text(page_text):
-                if (all_children
-                        and len(text) < MIN_CHILD_LEN
-                        and all_children[-1]["page"] == page_num):
-                    all_children[-1]["text"] += " " + text
-                else:
-                    all_children.append({"text": text, "page": page_num})
 
-        chunks = []
-
-        # parent: child CHILDREN_PER_PARENT개 묶음
-        for parent_idx, start in enumerate(range(0, len(all_children), CHILDREN_PER_PARENT)):
-            group = all_children[start: start + CHILDREN_PER_PARENT]
-            parent_id = f"{filename}__parent_{parent_idx}"
-            parent_text = "\n".join(c["text"] for c in group)
-            chunks.append({
-                "chunk_id": parent_id,
-                "chunk_type": "parent",
-                "text": parent_text,
-                "metadata": {
-                    **base_meta,
-                    "page_start": group[0]["page"],
-                    "page_end": group[-1]["page"],
-                },
-            })
-
-        # child: 검색 hit 시 page_start로 정확한 페이지 안내
-        for child_idx, child_info in enumerate(all_children):
-            parent_id = f"{filename}__parent_{child_idx // CHILDREN_PER_PARENT}"
-            chunks.append({
-                "chunk_id": f"{filename}__child_{child_idx}",
-                "chunk_type": "child",
-                "doc_id": parent_id,
-                "text": child_info["text"],
-                "metadata": {
-                    **base_meta,
-                    "chunk_index": child_idx,
-                    "doc_id": parent_id,
-                    "page_start": child_info["page"],
-                    "page_end": child_info["page"],
-                },
-            })
+            for text in splitter.split_text(page_text):
+                if len(text.strip()) < MIN_CHUNK_LEN:
+                    continue
+                chunks.append({
+                    "chunk_id": f"{filename}__chunk_{chunk_idx}",
+                    "text": text,
+                    "metadata": {
+                        **base_meta,
+                        "chunk_index": chunk_idx,
+                        "page_start": page_num,
+                        "page_end": page_num,
+                    },
+                })
+                chunk_idx += 1
 
         out_path = out_dir / parse_file.name
         out_path.write_text(json.dumps(chunks, ensure_ascii=False, indent=2), encoding="utf-8")
-
-        parents = sum(1 for c in chunks if c["chunk_type"] == "parent")
-        children = sum(1 for c in chunks if c["chunk_type"] == "child")
-        print(f"  {filename}")
-        print(f"    parent {parents}개 / child {children}개 → {out_path.name}")
+        print(f"  {filename} → {len(chunks)}개 청크 → {out_path.name}")
 
     print(f"\n완료: {out_dir}")
 

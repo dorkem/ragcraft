@@ -61,12 +61,8 @@ def main():
     total_ok, total_err = 0, 0
 
     for chunk_file in chunk_files:
-        all_chunks = json.loads(chunk_file.read_text(encoding="utf-8"))
-        # child 청크만 임베딩 (검색 대상), parent는 그대로 전달
-        chunks = [c for c in all_chunks if c.get("chunk_type") != "parent"]
-        if not chunks:
-            chunks = all_chunks  # 구버전 호환 (chunk_type 없는 경우)
-        print(f"\n[STEP 3] {chunk_file.name} - child {len(chunks)}개 임베딩")
+        chunks = json.loads(chunk_file.read_text(encoding="utf-8"))
+        print(f"\n[STEP 3] {chunk_file.name} - {len(chunks)}개 청크 임베딩")
 
         embedded, errors = [], []
         for chunk in tqdm(chunks, desc=f"  {chunk_file.stem}"):
