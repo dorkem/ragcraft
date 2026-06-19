@@ -19,10 +19,6 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIR: str = "./chroma_db"
     CHROMA_COLLECTION_NAME: str = "ragcraft"
 
-    # 파서
-    TENSORLAKE_API_KEY: str = ""
-    PARSER_TYPE: Literal["tensorlake", "pymupdf4llm", "pymupdf"] = "pymupdf4llm"
-
     # 청킹
     CHUNK_SIZE: int = 500
     CHUNK_OVERLAP: int = 50

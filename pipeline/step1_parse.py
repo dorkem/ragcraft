@@ -1,5 +1,5 @@
 ﻿"""
-STEP 1: 문서 파싱 (Tensorlake / PyMuPDF)
+STEP 1: 문서 파싱 (pymupdf4llm)
 입력: pipeline/output/step0_new_files.json
 출력: result/yyyy/mm/dd/parse/{파일명}.json  (페이지별 구조로 저장)
       img/complete_info/processed.json       (처리 이력 업데이트)
@@ -29,37 +29,7 @@ def result_path(filename: str) -> Path:
     return Path(f"result/{TODAY}/parse/{stem}.json")
 
 
-def parse_with_tensorlake(file_path: Path, api_key: str) -> list[dict]:
-    from tensorlake.documentai import DocumentAI, ParsingOptions
-    from tensorlake.documentai.models._enums import ChunkingStrategy
-
-    client = DocumentAI(api_key=api_key)
-    file_id = client.upload(file_path)
-
-    # ChunkingStrategy.PAGE: 페이지별로 chunk 분리 → chunk.page_number 정확하게 반환
-    result = client.parse_and_wait(
-        file_id=file_id,
-        parsing_options=ParsingOptions(chunking_strategy=ChunkingStrategy.PAGE),
-    )
-
-    if result.status and str(result.status).lower() not in ("completed", "success", "done"):
-        err = result.error or result.message_update or str(result.status)
-        raise RuntimeError(f"Tensorlake 파싱 실패: {err}")
-
-    if not result.chunks:
-        raise RuntimeError(f"Tensorlake 파싱 실패: 반환된 청크 없음 (status={result.status}, error={result.error})")
-
-    page_map: dict[int, list[str]] = {}
-    for chunk in result.chunks:
-        page_map.setdefault(chunk.page_number, []).append(chunk.content)
-
-    return [
-        {"page_number": pn, "content": "\n\n".join(texts)}
-        for pn, texts in sorted(page_map.items())
-    ]
-
-
-def parse_with_pymupdf4llm(file_path: Path) -> list[dict]:
+def parse(file_path: Path) -> list[dict]:
     import pymupdf4llm
     chunks = pymupdf4llm.to_markdown(str(file_path), page_chunks=True)
     return [
@@ -67,17 +37,6 @@ def parse_with_pymupdf4llm(file_path: Path) -> list[dict]:
         for chunk in chunks
         if chunk["text"].strip()
     ]
-
-
-def parse_with_pymupdf(file_path: Path) -> list[dict]:
-    import fitz
-    doc = fitz.open(str(file_path))
-    pages = [
-        {"page_number": i + 1, "content": page.get_text()}
-        for i, page in enumerate(doc)
-    ]
-    doc.close()
-    return pages
 
 
 def update_processed_log(file_info: dict, total_chars: int, output_path: Path):
@@ -109,9 +68,7 @@ def main():
         print("[INFO] 파싱할 신규 문서 없음")
         sys.exit(0)
 
-    from core.config import settings
-
-    print(f"\n[STEP 1] 파싱 시작 - {len(new_files)}개 / 파서: {settings.PARSER_TYPE}")
+    print(f"\n[STEP 1] 파싱 시작 - {len(new_files)}개 / 파서: pymupdf4llm")
     print(f"출력 경로: result/{TODAY}/parse/\n")
 
     success, errors = 0, []
@@ -122,12 +79,7 @@ def main():
         print(f"  파싱: {info['filename']}")
 
         try:
-            if settings.PARSER_TYPE == "tensorlake":
-                pages = parse_with_tensorlake(file_path, settings.TENSORLAKE_API_KEY)
-            elif settings.PARSER_TYPE == "pymupdf4llm":
-                pages = parse_with_pymupdf4llm(file_path)
-            else:
-                pages = parse_with_pymupdf(file_path)
+            pages = parse(file_path)
 
             total_chars = sum(len(p["content"]) for p in pages)
 
@@ -142,7 +94,7 @@ def main():
                 "metadata": {
                     "file_path": info["file_path"],
                     "file_size": info["file_size"],
-                    "parser": settings.PARSER_TYPE,
+                    "parser": "pymupdf4llm",
                 },
             }
             out_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
