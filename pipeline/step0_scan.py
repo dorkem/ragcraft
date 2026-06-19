@@ -14,7 +14,7 @@ IMG_DIR = Path("img")
 PROCESSED_LOG = IMG_DIR / "complete_info" / "processed.json"
 OUTPUT_FILE = Path("pipeline/output/step0_new_files.json")
 
-SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".hwp"}
+SUPPORTED_EXTENSIONS = {".pdf"}
 
 
 def file_hash(path: Path) -> str:
@@ -37,10 +37,9 @@ def main():
         sys.exit(1)
 
     all_files = sorted(
-        f for f in IMG_DIR.rglob("*")
+        f for f in IMG_DIR.iterdir()
         if f.is_file()
         and f.suffix.lower() in SUPPORTED_EXTENSIONS
-        and "complete_info" not in f.parts
     )
 
     if not all_files:
