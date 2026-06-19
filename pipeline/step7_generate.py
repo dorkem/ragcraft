@@ -65,7 +65,19 @@ def main() -> None:
     docs = [Document(page_content=d["content"], metadata=d["metadata"]) for d in data["docs"]]
     context = _format_docs(docs)
 
-    print(f"\n[STEP 7] 응답 생성 — \"{query}\" ({len(docs)}개 문서, from {input_path.name})")
+    W = 70
+    print(f"\n{'=' * W}")
+    print(f"  STEP 7  |  응답 생성  |  temp={TEMPERATURE}  |  from {input_path.name}")
+    print(f"{'=' * W}")
+    print(f"  질의: {query}")
+    print(f"{'=' * W}")
+
+    print(f"\n  참조 문서 ({len(docs)}개)")
+    for i, d in enumerate(docs):
+        filename = d.metadata.get("filename", "N/A")
+        page = d.metadata.get("page_start", "?")
+        print(f"  [{i+1}] {filename}  p.{page}")
+
     llm = HyperClovaLLM(
         temperature=TEMPERATURE,
         max_tokens=MAX_TOKENS,
@@ -80,10 +92,13 @@ def main() -> None:
     answer = result.generations[0].message.content
     token_usage = result.llm_output.get("token_usage", {})
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * W}")
+    print(f"  답변")
+    print(f"{'=' * W}\n")
     print(answer)
-    print(f"{'='*60}")
-    print(f"  토큰: input={token_usage.get('input_tokens')} / output={token_usage.get('output_tokens')}")
+    print(f"\n{'=' * W}")
+    print(f"  토큰: input={token_usage.get('input_tokens')}  output={token_usage.get('output_tokens')}")
+    print(f"{'=' * W}")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output = {
@@ -103,7 +118,7 @@ def main() -> None:
     }
     out_path = OUTPUT_DIR / "step7_generate.json"
     out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"\n  출력: {out_path}")
+    print(f"\n→ 출력: {out_path}")
 
 
 if __name__ == "__main__":

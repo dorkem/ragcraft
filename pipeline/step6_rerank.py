@@ -31,15 +31,24 @@ def main() -> None:
     query = data["query"]
     docs = [Document(page_content=d["content"], metadata=d["metadata"]) for d in data["docs"]]
 
-    print(f"\n[STEP 6] 리랭킹 — \"{query}\" ({len(docs)}개 → top {TOP_N})")
+    W = 70
+    print(f"\n{'=' * W}")
+    print(f"  STEP 6  |  리랭킹  |  {len(docs)}개 → top {TOP_N}")
+    print(f"{'=' * W}")
+    print(f"  질의: {query}")
+    print(f"{'=' * W}")
+
     reranker = ClovaReranker(top_n=TOP_N)
     reranked = reranker.compress_documents(docs, query)
-    print(f"  리랭킹 완료: {len(reranked)}개")
+
     for i, d in enumerate(reranked):
         filename = d.metadata.get("filename", "N/A")
         page = d.metadata.get("page_start", "?")
-        score = d.metadata.get("relevance_score", "-")
-        print(f"    [{i+1}] {filename} p.{page} score={score:.3f} — {d.page_content[:60].strip()}...")
+        score = d.metadata.get("relevance_score", 0)
+        print(f"\n[ {i+1} / {len(reranked)} ]  {filename}  p.{page}  |  score={score:.3f}")
+        print(f"{'-' * W}")
+        print(d.page_content)
+        print(f"{'-' * W}")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output = {
@@ -50,7 +59,7 @@ def main() -> None:
     }
     out_path = OUTPUT_DIR / "step6_rerank.json"
     out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"\n  출력: {out_path}")
+    print(f"\n→ 출력: {out_path}")
 
 
 if __name__ == "__main__":

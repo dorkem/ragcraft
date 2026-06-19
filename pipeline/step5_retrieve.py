@@ -76,11 +76,21 @@ def main() -> None:
         )
 
     docs = retriever.invoke(query)
-    print(f"  검색 결과: {len(docs)}개")
+
+    W = 70
+    print(f"\n{'=' * W}")
+    print(f"  STEP 5  |  검색 ({RETRIEVER_TYPE.upper()})  |  k={K}  |  결과 {len(docs)}개")
+    print(f"{'=' * W}")
+    print(f"  질의: {query}")
+    print(f"{'=' * W}")
+
     for i, d in enumerate(docs):
         filename = d.metadata.get("filename", "N/A")
         page = d.metadata.get("page_start", "?")
-        print(f"    [{i+1}] {filename} p.{page} — {d.page_content[:60].strip()}...")
+        print(f"\n[ {i+1} / {len(docs)} ]  {filename}  p.{page}")
+        print(f"{'-' * W}")
+        print(d.page_content)
+        print(f"{'-' * W}")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output = {
@@ -93,7 +103,7 @@ def main() -> None:
     }
     out_path = OUTPUT_DIR / "step5_retrieve.json"
     out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"\n  출력: {out_path}")
+    print(f"\n→ 출력: {out_path}")
 
 
 if __name__ == "__main__":
