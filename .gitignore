@@ -1,8 +1,32 @@
+# 환경 변수
 .env
+
+# Python 가상환경
 .venv/
+venv/
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+
+# OS
 .DS_Store
-test_sample/
+Thumbs.db
+
+# 데이터 / 문서 (용량 크고 민감)
+img/
 result/
+chroma_db/
+
+# 파이프라인 중간 산출물
+pipeline/output/
+
+# 외부 SDK / 서드파티 소스
+mcp-python-sdk/
+
+# Claude Code 내부 파일
+.claude/
+
+# 테스트 임시 파일
+test_sample/
+inspect_db*.py
