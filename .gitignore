@@ -1,3 +1,22 @@
+# 환경변수 / 인증
 .env
+*.env
+
+# 가상환경
 .venv/
+
+# IDE / 툴
 .claude/
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# 업로드 원본 PDF
+upload/
+
+# 전처리 결과물
+preprocess/result/
+chroma_db/
