@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from preprocess.chunker import chunk_documents
-from preprocess.embedder import ClovaStudioEmbeddings
+from preprocess.embedder import get_embeddings
 from preprocess.parser import parse_pdf
 from preprocess.vectorstore import add_documents, get_vectorstore
 
@@ -14,7 +14,7 @@ UPLOAD_DIR = Path("upload")
 
 
 def run(pdf_paths: list[Path]) -> None:
-    embeddings = ClovaStudioEmbeddings()
+    embeddings = get_embeddings()
     vectorstore = get_vectorstore(embeddings)
 
     for pdf_path in pdf_paths:
