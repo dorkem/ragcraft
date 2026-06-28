@@ -51,8 +51,9 @@ main.py → preprocess.py <path> → parse → chunk → embed → ChromaDB
    - `chunk_index`는 파일 단위 0-based → 검색 후 앞뒤 청크 이어붙이기에 활용
 
 3. **임베딩** (`preprocess/embedder.py`)
-   - CLOVA Studio API: `POST {CLOVA_STUDIO_ENDPOINT}/v1/api-tools/embedding/v2/{CLOVA_EMBEDDING_MODEL}`
-   - 모델: `bge-m3` / 인증: `Authorization: Bearer {CLOVASTUDIO_API_KEY}`
+   - `langchain_naver.ClovaXEmbeddings(model="bge-m3")` 사용
+   - 내부적으로 `/v1/openai` OpenAI-compatible 엔드포인트 호출 (1024차원)
+   - `/v1/api-tools/embedding/v2/bge-m3` 경로는 404 — 사용 불가
 
 4. **벡터DB 저장** (`preprocess/vectorstore.py`)
    - ChromaDB (`langchain_chroma.Chroma`)
@@ -93,7 +94,7 @@ idx    = hit.metadata["chunk_index"]
 |---|---|
 | PDF 파싱 | pymupdf4llm |
 | 청킹 | langchain-text-splitters |
-| 임베딩 | CLOVA Studio bge-m3 (커스텀 LangChain Embeddings) |
+| 임베딩 | langchain-naver `ClovaXEmbeddings` (bge-m3, 1024차원) |
 | 벡터DB | ChromaDB (langchain-chroma) |
 | LLM | HyperCLOVA X HCX-003 |
 | 프레임워크 | LangChain |
