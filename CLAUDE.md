@@ -25,7 +25,8 @@ ragcraft/
 │   ├── parser.py          # PDF 파싱 (pymupdf4llm)
 │   ├── chunker.py         # 청킹 (RecursiveCharacterTextSplitter)
 │   ├── embedder.py        # 임베딩 (dragonkue/BGE-m3-ko, 로컬)
-│   └── vectorstore.py     # 벡터DB 저장 (ChromaDB)
+│   ├── vectorstore.py     # 벡터DB 연결 (ChromaDB)
+│   └── vectorstore_crud.py # CRUD — 해시 중복 체크·insert·delete·list
 └── upload/                # 입력 PDF 파일 위치
 ```
 
