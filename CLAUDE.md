@@ -24,7 +24,7 @@ ragcraft/
 ├── preprocess/            # 전처리 모듈 (단독 실행 불가)
 │   ├── parser.py          # PDF 파싱 (pymupdf4llm)
 │   ├── chunker.py         # 청킹 (RecursiveCharacterTextSplitter)
-│   ├── embedder.py        # 임베딩 (CLOVA Studio bge-m3)
+│   ├── embedder.py        # 임베딩 (dragonkue/BGE-m3-ko, 로컬)
 │   └── vectorstore.py     # 벡터DB 저장 (ChromaDB)
 └── upload/                # 입력 PDF 파일 위치
 ```
@@ -51,9 +51,10 @@ main.py → preprocess.py <path> → parse → chunk → embed → ChromaDB
    - `chunk_index`는 파일 단위 0-based → 검색 후 앞뒤 청크 이어붙이기에 활용
 
 3. **임베딩** (`preprocess/embedder.py`)
-   - `langchain_naver.ClovaXEmbeddings(model="bge-m3")` 사용
-   - 내부적으로 `/v1/openai` OpenAI-compatible 엔드포인트 호출 (1024차원)
-   - `/v1/api-tools/embedding/v2/bge-m3` 경로는 404 — 사용 불가
+   - `langchain_huggingface.HuggingFaceEmbeddings(model="dragonkue/BGE-m3-ko")` 사용
+   - 로컬 추론 (sentence-transformers), API 불필요
+   - `normalize_embeddings=True`, device 기본값 `cpu`
+   - 환경변수 `EMBEDDING_MODEL`로 모델 교체 가능
 
 4. **벡터DB 저장** (`preprocess/vectorstore.py`)
    - ChromaDB (`langchain_chroma.Chroma`)
@@ -68,7 +69,7 @@ main.py → preprocess.py <path> → parse → chunk → embed → ChromaDB
 |---|---|
 | `CLOVASTUDIO_API_KEY` | CLOVA Studio API 키 (`nv-` 접두어) |
 | `CLOVA_STUDIO_ENDPOINT` | `https://clovastudio.stream.ntruss.com` |
-| `CLOVA_EMBEDDING_MODEL` | `bge-m3` |
+| `EMBEDDING_MODEL` | 로컬 임베딩 모델명 (기본값 `dragonkue/BGE-m3-ko`) |
 | `HYPERCLOVA_MODEL` | `HCX-003` |
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 |
 | `CHROMA_COLLECTION_NAME` | ChromaDB 컬렉션 이름 |
@@ -94,7 +95,7 @@ idx    = hit.metadata["chunk_index"]
 |---|---|
 | PDF 파싱 | pymupdf4llm |
 | 청킹 | langchain-text-splitters |
-| 임베딩 | langchain-naver `ClovaXEmbeddings` (bge-m3, 1024차원) |
+| 임베딩 | langchain-huggingface `HuggingFaceEmbeddings` (`dragonkue/BGE-m3-ko`, 로컬) |
 | 벡터DB | ChromaDB (langchain-chroma) |
 | LLM | HyperCLOVA X HCX-003 |
 | 프레임워크 | LangChain |
